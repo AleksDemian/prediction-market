@@ -1,0 +1,36 @@
+# ── Secrets ──────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+contracts/.env
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Editors ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Frontend (Next.js) ───────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/.turbo/
+
+# ── Contracts (Foundry) ──────────────────────────────────────────────────────
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+contracts/foundry.lock
+
+# forge-std is pulled via `forge install`, not a tracked submodule
+contracts/lib/forge-std/
+
+# ── Test / CI artifacts ───────────────────────────────────────────────────────
+.playwright-mcp/
+screenshot-*.png
+PLAN.md

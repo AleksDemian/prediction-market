@@ -1,0 +1,27 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_MARKET_ADDRESS: ${NEXT_PUBLIC_MARKET_ADDRESS}
+        NEXT_PUBLIC_USDC_ADDRESS: ${NEXT_PUBLIC_USDC_ADDRESS}
+        NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID:-11155111}
+        NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
+        NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      DEMO_ADMIN_PRIVATE_KEY: ${DEMO_ADMIN_PRIVATE_KEY}
+      NEXT_PUBLIC_MARKET_ADDRESS: ${NEXT_PUBLIC_MARKET_ADDRESS}
+      NEXT_PUBLIC_USDC_ADDRESS: ${NEXT_PUBLIC_USDC_ADDRESS}
+      NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID:-11155111}
+      NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
+      NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
