@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createWalletClient, createPublicClient, http, parseAbi } from "viem";
+import { createWalletClient, http, parseAbi } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 
@@ -28,7 +28,6 @@ export async function POST(req: NextRequest) {
     const transport = rpcUrl ? http(rpcUrl) : http();
 
     const walletClient = createWalletClient({ account, chain: sepolia, transport });
-    const publicClient = createPublicClient({ chain: sepolia, transport });
 
     const hash = await walletClient.writeContract({
       address: usdcAddress,

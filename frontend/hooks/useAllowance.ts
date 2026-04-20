@@ -1,7 +1,7 @@
 "use client";
 
 import { useAccount, useReadContract, useWriteContract } from "wagmi";
-import { mockUsdcConfig, predictionMarketConfig } from "@/lib/contracts";
+import { mockUsdcConfig } from "@/lib/contracts";
 import { MARKET_ADDRESS } from "@/constants";
 
 export function useAllowance() {

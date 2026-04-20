@@ -141,8 +141,6 @@ export function DemoGuide() {
     }
   };
 
-  const isCurrentStepBlocked = step === 0 && !address;
-
   return (
     <div className="fixed bottom-4 left-4 z-40 w-80 bg-surface-card border border-accent/30 rounded-xl shadow-xl">
       {/* Header */}
