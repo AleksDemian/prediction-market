@@ -1,5 +1,9 @@
 export const SEPOLIA_CHAIN_ID = 11155111;
 
+// Block at which the PredictionMarket contract was deployed — used as getLogs fromBlock
+// to avoid scanning the full Sepolia history and hitting RPC rate limits.
+export const CONTRACT_DEPLOY_BLOCK = 10696829n;
+
 export const MARKET_ADDRESS = (process.env.NEXT_PUBLIC_MARKET_ADDRESS ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
 export const USDC_ADDRESS   = (process.env.NEXT_PUBLIC_USDC_ADDRESS   ?? "0x0000000000000000000000000000000000000000") as `0x${string}`;
 

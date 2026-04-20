@@ -1,22 +1,50 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* BoostyLabs brand palette */
-  --color-navy:         #0d1b2a;
-  --color-navy-800:     #1a2e45;
-  --color-navy-700:     #243b55;
+  /* ── BACKGROUNDS ──────────────────────────────────────────────────────────── */
+  --color-navy:         #080c14;   /* page background */
+  --color-navy-900:     #0c1220;
+  --color-navy-800:     #111827;   /* elevated surfaces */
+  --color-navy-700:     #1a2332;   /* hover on dark surfaces */
 
-  --color-surface:      #111827;
-  --color-surface-card: #1f2937;
+  /* ── SURFACES ─────────────────────────────────────────────────────────────── */
+  --color-surface:      #0f1520;
+  --color-surface-card: #141c2b;
+  --color-surface-hover: #1a2436;
 
-  --color-accent:       #cfd4db;
-  --color-accent-dim:   #8896a7;
+  /* ── BORDERS ──────────────────────────────────────────────────────────────── */
+  --color-border:       #1e293b;
+  --color-border-light: #2a3548;
 
+  /* ── TEXT HIERARCHY ───────────────────────────────────────────────────────── */
+  --color-text-primary:   #ffffff;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted:     #64748b;
+  --color-text-dim:       #475569;
+
+  /* ── BRAND (BoostyLabs green CTA) ────────────────────────────────────────── */
+  --color-brand:        #22c55e;
+  --color-brand-light:  #4ade80;
+  --color-brand-dark:   #16a34a;
+  --color-brand-muted:  #166534;
+  --color-brand-ghost:  rgba(34, 197, 94, 0.1);
+
+  /* ── PREDICTION MARKET OUTCOMES ───────────────────────────────────────────── */
   --color-yes:          #22c55e;
   --color-yes-muted:    #166534;
-
+  --color-yes-light:    #4ade80;
   --color-no:           #ef4444;
   --color-no-muted:     #991b1b;
+  --color-no-light:     #f87171;
+
+  /* ── SEMANTIC ─────────────────────────────────────────────────────────────── */
+  --color-warning:      #f59e0b;
+  --color-info:         #3b82f6;
+  --color-invalid:      #8b5cf6;
+
+  /* ── LEGACY ALIASES (backward-compat with existing components) ────────────── */
+  --color-accent:       #94a3b8;
+  --color-accent-dim:   #64748b;
 
   --color-background:   var(--color-navy);
   --color-foreground:   #ffffff;
@@ -41,6 +69,6 @@ body {
   background: var(--color-navy-800);
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-accent-dim);
+  background: var(--color-text-muted);
   border-radius: 3px;
 }

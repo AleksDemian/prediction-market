@@ -17,6 +17,9 @@ Thumbs.db
 
 # ── Frontend (Next.js) ───────────────────────────────────────────────────────
 frontend/node_modules/
+frontend/.playwright/
+frontend/.playwright-cli/
+frontend/.claude/
 frontend/.next/
 frontend/out/
 frontend/.turbo/
@@ -32,5 +35,6 @@ contracts/lib/forge-std/
 
 # ── Test / CI artifacts ───────────────────────────────────────────────────────
 .playwright-mcp/
+.cursor/
 screenshot-*.png
-PLAN.md
+docs/

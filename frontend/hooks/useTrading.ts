@@ -1,13 +1,34 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { useWriteContract, useAccount, useWaitForTransactionReceipt } from "wagmi";
+import { useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { predictionMarketConfig, mockUsdcConfig } from "@/lib/contracts";
 import { MARKET_ADDRESS } from "@/constants";
 import { useState } from "react";
 
+export function isUserRejection(e: unknown): boolean {
+  const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return msg.includes("user rejected") || msg.includes("user denied");
+}
+
+function mapTradingError(message: string): string {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("proposal expired")) {
+    return "Запит у гаманці протерміновано. Повторіть операцію та підтвердьте її швидше.";
+  }
+  if (normalized.includes("user rejected") || normalized.includes("user denied")) {
+    return "Транзакцію скасовано користувачем";
+  }
+  if (normalized.includes("gas limit too high") || normalized.includes("intrinsic gas too high")) {
+    return "Помилка оцінки газу. Перевірте, чи підтверджено approve, і спробуйте ще раз.";
+  }
+  if (normalized.includes("insufficient allowance") || normalized.includes("erc20: insufficient allowance")) {
+    return "Недостатній approve. Спробуйте ще раз — approve має підтвердитися першим.";
+  }
+  return "Транзакція не виконана";
+}
+
 export function useTrading(marketId: bigint) {
-  const { address } = useAccount();
   const queryClient = useQueryClient();
   const { writeContractAsync } = useWriteContract();
 
@@ -42,8 +63,10 @@ export function useTrading(marketId: bigint) {
       }, 2000);
       return hash;
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Transaction failed";
-      setError(msg.includes("User rejected") ? "Transaction rejected" : "Transaction failed");
+      if (!isUserRejection(e)) {
+        const msg = e instanceof Error ? e.message : "Transaction failed";
+        setError(mapTradingError(msg));
+      }
       throw e;
     } finally {
       setIsSubmitting(false);
@@ -69,8 +92,10 @@ export function useTrading(marketId: bigint) {
       }, 2000);
       return hash;
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Transaction failed";
-      setError(msg.includes("User rejected") ? "Transaction rejected" : "Transaction failed");
+      if (!isUserRejection(e)) {
+        const msg = e instanceof Error ? e.message : "Transaction failed";
+        setError(mapTradingError(msg));
+      }
       throw e;
     } finally {
       setIsSubmitting(false);
@@ -92,8 +117,10 @@ export function useTrading(marketId: bigint) {
       }, 2000);
       return hash;
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Transaction failed";
-      setError(msg.includes("User rejected") ? "Transaction rejected" : "Transaction failed");
+      if (!isUserRejection(e)) {
+        const msg = e instanceof Error ? e.message : "Transaction failed";
+        setError(mapTradingError(msg));
+      }
       throw e;
     } finally {
       setIsSubmitting(false);
@@ -110,6 +137,12 @@ export function useTrading(marketId: bigint) {
       });
       setTimeout(() => queryClient.invalidateQueries(), 2000);
       return hash;
+    } catch (e: unknown) {
+      if (!isUserRejection(e)) {
+        const msg = e instanceof Error ? e.message : "Approval failed";
+        setError(mapTradingError(msg));
+      }
+      throw e;
     } finally {
       setIsSubmitting(false);
     }

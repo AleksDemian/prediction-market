@@ -128,6 +128,17 @@ contract PredictionMarketTest is Test {
         assertGt(p1, p0);
     }
 
+    function test_BuyAtFiftyPercent_GetsMoreSharesThanNetCollateral() public {
+        uint256 id = _createMarket();
+        uint256 tenDollars = 10e6;
+        (uint256 sharesOut, uint256 fee) = market.getSharesOut(id, true, tenDollars);
+
+        // With YES/NO around 50%, 1 share costs ~0.5 mUSDC, so sharesOut should
+        // exceed net collateral spent (after fee).
+        uint256 netIn = tenDollars - fee;
+        assertGt(sharesOut, netIn);
+    }
+
     function test_BuyShares_SlippageReverts() public {
         uint256 id = _createMarket();
         (uint256 expectedShares,) = market.getSharesOut(id, true, TRADE);
@@ -165,6 +176,25 @@ contract PredictionMarketTest is Test {
 
         PredictionMarket.Position memory posFinal = market.getUserPosition(id, alice);
         assertEq(posFinal.yesShares, 0);
+    }
+
+    function test_BuyForceResolveClaim_WinnerReceivesMoreThanStakeNearFiftyPct() public {
+        uint256 id = _createMarket();
+        uint256 tenDollars = 10e6;
+
+        vm.prank(alice);
+        market.buyShares(id, true, tenDollars, 0);
+
+        vm.prank(admin);
+        market.forceResolveMarket(id, PredictionMarket.Outcome.YES);
+
+        uint256 balBefore = usdc.balanceOf(alice);
+        vm.prank(alice);
+        market.claimWinnings(id);
+        uint256 balAfter = usdc.balanceOf(alice);
+
+        // At ~50% entry, each YES share pays 1 mUSDC — more shares than net stake ⇒ payout > stake.
+        assertGt(balAfter - balBefore, tenDollars);
     }
 
     // ── Resolution ────────────────────────────────────────────────────────────
@@ -265,6 +295,33 @@ contract PredictionMarketTest is Test {
         vm.stopPrank();
     }
 
+    function test_PoolRemainsSolvent_AfterBuysSellsAndClaims() public {
+        uint256 id = _createMarket();
+
+        vm.prank(alice);
+        market.buyShares(id, true, 120e6, 0);
+        vm.prank(bob);
+        market.buyShares(id, false, 80e6, 0);
+
+        PredictionMarket.Position memory bobPos = market.getUserPosition(id, bob);
+        vm.prank(bob);
+        market.sellShares(id, false, bobPos.noShares / 2, 0);
+
+        // INVALID: both sides can claim (yesShares + noShares); YES/NO would zero one side.
+        vm.prank(admin);
+        market.forceResolveMarket(id, PredictionMarket.Outcome.INVALID);
+
+        uint256 contractBalBeforeClaims = usdc.balanceOf(address(market));
+
+        vm.prank(alice);
+        market.claimWinnings(id);
+        vm.prank(bob);
+        market.claimWinnings(id);
+
+        uint256 contractBalAfterClaims = usdc.balanceOf(address(market));
+        assertLe(contractBalAfterClaims, contractBalBeforeClaims);
+    }
+
     // ── View helpers ──────────────────────────────────────────────────────────
 
     function test_GetAllMarkets() public {
@@ -275,6 +332,39 @@ contract PredictionMarketTest is Test {
         assertEq(mArr.length, 2);
         assertEq(mArr[0].id, 1);
         assertEq(mArr[1].id, 2);
+    }
+
+    // ── getUserMarketIds ──────────────────────────────────────────────────────
+
+    function test_GetUserMarketIds_WithPosition() public {
+        uint256 id = _createMarket();
+
+        vm.prank(alice);
+        market.buyShares(id, true, TRADE, 0);
+
+        uint256[] memory ids = market.getUserMarketIds(alice);
+        assertEq(ids.length, 1);
+        assertEq(ids[0], id);
+    }
+
+    function test_GetUserMarketIds_NoPosition() public {
+        _createMarket();
+        uint256[] memory ids = market.getUserMarketIds(alice);
+        assertEq(ids.length, 0);
+    }
+
+    function test_GetUserMarketIds_AfterSell() public {
+        uint256 id = _createMarket();
+
+        vm.startPrank(alice);
+        market.buyShares(id, true, TRADE, 0);
+        PredictionMarket.Position memory pos = market.getUserPosition(id, alice);
+        market.sellShares(id, true, pos.yesShares, 0);
+        vm.stopPrank();
+
+        // After full sell, no shares remain
+        uint256[] memory ids = market.getUserMarketIds(alice);
+        assertEq(ids.length, 0);
     }
 
     // ── MockUSDC faucet ───────────────────────────────────────────────────────

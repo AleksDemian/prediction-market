@@ -9,10 +9,11 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerKey = vm.envUint("PRIVATE_KEY");
         address deployer    = vm.addr(deployerKey);
+        address usdc        = vm.envAddress("USDC_ADDRESS");
 
         vm.startBroadcast(deployerKey);
 
-        MockUSDC usdc           = new MockUSDC(deployer);
+        // MockUSDC usdc           = new MockUSDC(deployer);
         PredictionMarket market = new PredictionMarket(address(usdc), deployer);
 
         vm.stopBroadcast();

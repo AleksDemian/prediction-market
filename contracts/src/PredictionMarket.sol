@@ -3,6 +3,7 @@ pragma solidity ^0.8.28;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 /// @title PredictionMarket
@@ -35,10 +36,10 @@ contract PredictionMarket is ReentrancyGuard {
     }
 
     struct Pool {
-        uint256 yesReserve;       // virtual YES-share units in AMM pool
-        uint256 noReserve;        // virtual NO-share units in AMM pool
-        uint256 totalCollateral;  // total mUSDC ever deposited
-        uint256 lpFeeAccrued;     // cumulative 2% fees
+        uint256 yesReserve;       // YES-share inventory held by AMM
+        uint256 noReserve;        // NO-share inventory held by AMM
+        uint256 totalCollateral;  // live collateral currently held for this market
+        uint256 lpFeeAccrued;     // cumulative fees retained in collateral
     }
 
     struct Position {
@@ -85,14 +86,16 @@ contract PredictionMarket is ReentrancyGuard {
         address indexed buyer,
         bool    isYes,
         uint256 collateralIn,
-        uint256 sharesOut
+        uint256 sharesOut,
+        uint256 newYesProbability  // 1e18 scaled
     );
     event SharesSold(
         uint256 indexed marketId,
         address indexed seller,
         bool    isYes,
         uint256 sharesIn,
-        uint256 collateralOut
+        uint256 collateralOut,
+        uint256 newYesProbability  // 1e18 scaled
     );
     event MarketResolved(
         uint256 indexed marketId,
@@ -183,16 +186,18 @@ contract PredictionMarket is ReentrancyGuard {
         fee = (collateralIn * FEE_BPS) / 10_000;
         uint256 netIn = collateralIn - fee;
 
-        // x*y=k: buying YES means injecting mUSDC into the NO side and extracting from YES side
+        // Binary FPMM step:
+        // 1) netIn collateral mints netIn YES + netIn NO complete sets.
+        // 2) user keeps chosen side after swapping via CPMM.
         uint256 k = p.yesReserve * p.noReserve;
         if (isYes) {
             uint256 newNo  = p.noReserve + netIn;
             uint256 newYes = k / newNo;
-            sharesOut = p.yesReserve - newYes;
+            sharesOut = (p.yesReserve + netIn) - newYes;
         } else {
             uint256 newYes = p.yesReserve + netIn;
             uint256 newNo  = k / newYes;
-            sharesOut = p.noReserve - newNo;
+            sharesOut = (p.noReserve + netIn) - newNo;
         }
     }
 
@@ -205,19 +210,28 @@ contract PredictionMarket is ReentrancyGuard {
         require(sharesIn > 0, "Zero input");
         Pool storage p = pools[marketId];
 
-        uint256 k = p.yesReserve * p.noReserve;
-        uint256 grossOut;
-        if (isYes) {
-            uint256 newYes = p.yesReserve + sharesIn;
-            uint256 newNo  = k / newYes;
-            grossOut = p.noReserve - newNo;
-        } else {
-            uint256 newNo  = p.noReserve + sharesIn;
-            uint256 newYes = k / newNo;
-            grossOut = p.yesReserve - newYes;
-        }
+        uint256 grossOut = _getGrossCollateralOut(p.yesReserve, p.noReserve, isYes, sharesIn);
         fee          = (grossOut * FEE_BPS) / 10_000;
         collateralOut = grossOut - fee;
+    }
+
+    function _getGrossCollateralOut(
+        uint256 yesReserve,
+        uint256 noReserve,
+        bool    isYes,
+        uint256 sharesIn
+    ) internal pure returns (uint256 grossOut) {
+        // Reverse of buy under binary FPMM:
+        // seller adds shares to one side, then removes `grossOut` complete sets from both sides.
+        // Preserve k = yesReserve * noReserve after trade.
+        uint256 y = yesReserve;
+        uint256 n = noReserve;
+
+        uint256 sum = y + n + sharesIn;
+        uint256 term = isYes ? (sharesIn * n) : (sharesIn * y);
+        uint256 disc = (sum * sum) - (4 * term);
+        uint256 sqrtDisc = Math.sqrt(disc);
+        grossOut = (sum - sqrtDisc) / 2;
     }
 
     /// @notice YES probability, scaled to 1e18.
@@ -263,18 +277,19 @@ contract PredictionMarket is ReentrancyGuard {
 
         uint256 netIn = collateralIn - fee;
         if (isYes) {
+            p.yesReserve = p.yesReserve + netIn - sharesOut;
             p.noReserve  += netIn;
-            p.yesReserve -= sharesOut;
         } else {
+            p.noReserve  = p.noReserve + netIn - sharesOut;
             p.yesReserve += netIn;
-            p.noReserve  -= sharesOut;
         }
 
         Position storage pos = positions[marketId][msg.sender];
         if (isYes) pos.yesShares += sharesOut;
         else       pos.noShares  += sharesOut;
 
-        emit SharesBought(marketId, msg.sender, isYes, collateralIn, sharesOut);
+        uint256 newProb = (p.noReserve * 1e18) / (p.yesReserve + p.noReserve);
+        emit SharesBought(marketId, msg.sender, isYes, collateralIn, sharesOut, newProb);
     }
 
     /// @notice Sell YES or NO shares back for mUSDC.
@@ -300,21 +315,23 @@ contract PredictionMarket is ReentrancyGuard {
         require(collateralOut > 0,                            "Zero collateral out");
 
         Pool storage p = pools[marketId];
+        uint256 grossOut = collateralOut + fee;
         p.lpFeeAccrued    += fee;
         p.totalCollateral -= collateralOut;
 
         if (isYes) {
             pos.yesShares   -= sharesIn;
-            p.yesReserve    += sharesIn;
-            p.noReserve     -= (collateralOut + fee);
+            p.yesReserve    = p.yesReserve + sharesIn - grossOut;
+            p.noReserve     -= grossOut;
         } else {
             pos.noShares    -= sharesIn;
-            p.noReserve     += sharesIn;
-            p.yesReserve    -= (collateralOut + fee);
+            p.noReserve     = p.noReserve + sharesIn - grossOut;
+            p.yesReserve    -= grossOut;
         }
 
         collateral.safeTransfer(msg.sender, collateralOut);
-        emit SharesSold(marketId, msg.sender, isYes, sharesIn, collateralOut);
+        uint256 newProb = (p.noReserve * 1e18) / (p.yesReserve + p.noReserve);
+        emit SharesSold(marketId, msg.sender, isYes, sharesIn, collateralOut, newProb);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -395,6 +412,26 @@ contract PredictionMarket is ReentrancyGuard {
         returns (Position memory)
     {
         return positions[marketId][user];
+    }
+
+    /// @notice Returns market IDs where the user has non-zero shares or unclaimed winnings.
+    ///         Optimises portfolio page — avoids fetching positions for every market.
+    function getUserMarketIds(address user) external view returns (uint256[] memory) {
+        uint256 count = marketCount;
+        uint256[] memory temp = new uint256[](count);
+        uint256 found = 0;
+        for (uint256 i = 1; i <= count; i++) {
+            Position storage pos = positions[i][user];
+            if (pos.yesShares > 0 || pos.noShares > 0 || (markets[i].resolved && !pos.claimed)) {
+                temp[found] = i;
+                found++;
+            }
+        }
+        uint256[] memory result = new uint256[](found);
+        for (uint256 i = 0; i < found; i++) {
+            result[i] = temp[i];
+        }
+        return result;
     }
 
     /// @notice Batch-fetch all markets and their pools in one call.

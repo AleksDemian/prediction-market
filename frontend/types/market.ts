@@ -33,4 +33,6 @@ export interface MarketWithPool {
   market: MarketInfo;
   pool: Pool;
   yesProbability: number; // 0–1 float
+  liquidity: bigint; // current collateral available in pool
+  volume: bigint; // cumulative traded collateral (buy+sell)
 }
