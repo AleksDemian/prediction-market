@@ -1,4 +1,17 @@
 services:
+  indexer:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_PATH: /data/app.db
+      MARKET_ADDRESS: ${NEXT_PUBLIC_MARKET_ADDRESS}
+      RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+      CONTRACT_DEPLOY_BLOCK: ${CONTRACT_DEPLOY_BLOCK:-10697000}
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+
   frontend:
     build:
       context: ./frontend
@@ -9,19 +22,27 @@ services:
         NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID:-11155111}
         NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
         NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+    depends_on:
+      - indexer
     ports:
       - "3000:3000"
     environment:
+      DATABASE_PATH: /data/app.db
       DEMO_ADMIN_PRIVATE_KEY: ${DEMO_ADMIN_PRIVATE_KEY}
       NEXT_PUBLIC_MARKET_ADDRESS: ${NEXT_PUBLIC_MARKET_ADDRESS}
       NEXT_PUBLIC_USDC_ADDRESS: ${NEXT_PUBLIC_USDC_ADDRESS}
       NEXT_PUBLIC_CHAIN_ID: ${NEXT_PUBLIC_CHAIN_ID:-11155111}
       NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID: ${NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID}
       NEXT_PUBLIC_RPC_URL: ${NEXT_PUBLIC_RPC_URL}
+    volumes:
+      - app-data:/data:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 15s
+
+volumes:
+  app-data:

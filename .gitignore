@@ -24,6 +24,12 @@ frontend/.next/
 frontend/out/
 frontend/.turbo/
 
+# ── Backend (Indexer) ────────────────────────────────────────────────────────
+backend/node_modules/
+backend/data/
+backend/coverage/
+data/
+
 # ── Contracts (Foundry) ──────────────────────────────────────────────────────
 contracts/out/
 contracts/cache/
@@ -37,4 +43,9 @@ contracts/lib/forge-std/
 .playwright-mcp/
 .cursor/
 screenshot-*.png
+frontend/playwright-report/
+frontend/test-results/
+frontend/e2e/
+frontend/playwright.config.ts
 docs/
+data/

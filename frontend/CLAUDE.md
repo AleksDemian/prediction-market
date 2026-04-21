@@ -35,7 +35,6 @@ app/
   page.tsx            # Market listing page
   globals.css         # Tailwind v4 @theme tokens (brand colors, dark theme)
   api/
-    demo/faucet/      # POST — mints 1000 mUSDC (uses DEMO_ADMIN_PRIVATE_KEY server-side)
     demo/resolve/     # POST — admin force-resolve markets
     health/           # GET  — health check
   market/[id]/        # Dynamic market detail page
@@ -66,7 +65,7 @@ types/                # Market, Pool, Position interfaces; Outcome enum
 ### Environment Variables
 
 Server-only (no prefix):
-- `DEMO_ADMIN_PRIVATE_KEY` — private key used by demo API routes to sign transactions
+- `DEMO_ADMIN_PRIVATE_KEY` — private key used by `api/demo/resolve` to sign admin resolution transactions
 
 Client-exposed (`NEXT_PUBLIC_` prefix required):
 - `NEXT_PUBLIC_MARKET_ADDRESS` — deployed PredictionMarket contract
