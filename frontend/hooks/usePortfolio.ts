@@ -1,7 +1,7 @@
 "use client";
 
-import { useReadContracts } from "wagmi";
-import { useAccount } from "wagmi";
+import { useEffect, useRef } from "react";
+import { useReadContracts, useAccount } from "wagmi";
 import { useMarkets } from "./useMarkets";
 import { useUserTrades } from "./useUserTrades";
 import { predictionMarketConfig } from "@/lib/contracts";
@@ -32,8 +32,16 @@ export interface PortfolioPosition {
 
 export function usePortfolio() {
   const { address } = useAccount();
-  const { markets, isLoading: marketsLoading } = useMarkets();
-  const { data: tradeStats, isLoading: tradesLoading } = useUserTrades();
+  const {
+    markets,
+    isLoading: marketsLoading,
+    error: marketsError,
+  } = useMarkets();
+  const {
+    data: tradeStats,
+    isLoading: tradesLoading,
+    error: tradesError,
+  } = useUserTrades();
 
   // Multicall: fetch user position for every market in one RPC call
   const contracts = markets.map((m) => ({
@@ -42,7 +50,11 @@ export function usePortfolio() {
     args: [m.market.id, address!] as [bigint, `0x${string}`],
   }));
 
-  const { data: positionsData, isLoading: positionsLoading } = useReadContracts({
+  const {
+    data: positionsData,
+    isLoading: positionsLoading,
+    error: positionsError,
+  } = useReadContracts({
     contracts,
     query: {
       enabled: !!address && markets.length > 0,
@@ -116,8 +128,32 @@ export function usePortfolio() {
     }
   }
 
+  const lastStablePositionsRef = useRef<PortfolioPosition[]>([]);
+  const hasTransientError = !!marketsError || !!tradesError || !!positionsError;
+  const isAnyLoading =
+    marketsLoading ||
+    tradesLoading ||
+    (!!address && markets.length > 0 && positionsLoading);
+
+  useEffect(() => {
+    if (!address) {
+      lastStablePositionsRef.current = [];
+      return;
+    }
+    // Cache only meaningful snapshots to avoid replacing good data with empty
+    // transitional states when API/indexer is catching up.
+    if (positions.length > 0) {
+      lastStablePositionsRef.current = positions;
+    }
+  }, [address, positions]);
+
+  const stablePositions =
+    positions.length === 0 && (isAnyLoading || hasTransientError)
+      ? lastStablePositionsRef.current
+      : positions;
+
   // Summary stats
-  const totalValue = positions.reduce((acc, p) => {
+  const totalValue = stablePositions.reduce((acc, p) => {
     if (p.resolved) {
       // For resolved markets, value is exact
       const outcome = p.outcome;
@@ -129,8 +165,8 @@ export function usePortfolio() {
     return acc + p.currentValue;
   }, 0);
 
-  const activePositions   = positions.filter((p) => p.marketStatus === "open" || p.marketStatus === "closed");
-  const resolvedPositions = positions.filter((p) => p.marketStatus === "resolved");
+  const activePositions   = stablePositions.filter((p) => p.marketStatus === "open" || p.marketStatus === "closed");
+  const resolvedPositions = stablePositions.filter((p) => p.marketStatus === "resolved");
   const claimablePositions = resolvedPositions.filter((p) => {
     if (p.claimed) return false;
     const outcome = p.outcome;
@@ -141,11 +177,11 @@ export function usePortfolio() {
   });
 
   return {
-    positions,
+    positions: stablePositions,
     activePositions,
     resolvedPositions,
     claimablePositions,
     totalValue,
-    isLoading: marketsLoading || tradesLoading || (!!address && markets.length > 0 && positionsLoading),
+    isLoading: isAnyLoading && stablePositions.length === 0,
   };
 }

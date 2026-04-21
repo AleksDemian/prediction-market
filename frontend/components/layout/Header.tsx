@@ -12,13 +12,17 @@ import { useToast } from "@/components/ui/Toast";
 import { useQueryClient } from "@tanstack/react-query";
 import { clsx } from "clsx";
 
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
 function UsdcBalance() {
   const { address } = useAccount();
   const { data: balance } = useReadContract({
     ...mockUsdcConfig,
     functionName: "balanceOf",
     args: [address!],
-    query: { enabled: !!address, refetchInterval: 15_000 },
+    query: { enabled: !!address, refetchInterval: 10_000 },
   });
   if (!address || balance === undefined) return null;
   return (
@@ -63,7 +67,14 @@ function FaucetButton() {
   useEffect(() => {
     if (isConfirmed && txHash) {
       addToast("1 000 mUSDC received!", "success", txHash);
-      queryClient.invalidateQueries();
+      // Indexer + RPC propagation can lag a few seconds; burst invalidation keeps
+      // balance and portfolio UI fresh right after faucet confirmation.
+      (async () => {
+        for (let i = 0; i < 4; i++) {
+          queryClient.invalidateQueries();
+          await sleep(2_000);
+        }
+      })();
     }
   }, [isConfirmed, txHash, addToast, queryClient]);
 

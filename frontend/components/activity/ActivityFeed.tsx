@@ -43,7 +43,7 @@ export function ActivityFeed({ marketId, markets, limit = 20, title = "Recent Ac
         <div>
           {events.map((event) => (
             <ActivityItem
-              key={`${event.txHash}-${event.type}`}
+              key={`${event.type}-${event.blockNumber.toString()}-${event.marketId.toString()}-${event.txHash ?? "no-tx"}`}
               event={event}
               showMarketQuestion={!marketId}
               question={questionMap.get(event.marketId.toString())}

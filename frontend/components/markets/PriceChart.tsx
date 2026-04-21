@@ -15,7 +15,6 @@ import { usePriceHistory } from "@/hooks/usePriceHistory";
 
 interface PriceChartProps {
   marketId: bigint;
-  createdAt?: number;
 }
 
 function formatXAxis(ts: number): string {
@@ -53,10 +52,10 @@ const useIsMounted = () =>
     () => false
   );
 
-export function PriceChart({ marketId, createdAt }: PriceChartProps) {
+export function PriceChart({ marketId }: PriceChartProps) {
   const mounted = useIsMounted();
 
-  const { data: points, isLoading } = usePriceHistory(marketId, createdAt);
+  const { data: points, isLoading } = usePriceHistory(marketId);
 
   if (!mounted || isLoading) {
     return (

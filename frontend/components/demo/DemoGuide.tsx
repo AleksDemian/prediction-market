@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { useWriteContract } from "wagmi";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
@@ -10,6 +11,7 @@ import { useTrading } from "@/hooks/useTrading";
 import { useAllowance } from "@/hooks/useAllowance";
 import { useMarket } from "@/hooks/useMarket";
 import { parseUsdc } from "@/lib/formatting";
+import { mockUsdcConfig } from "@/lib/contracts";
 
 const DEMO_MARKET_ID = 6n; // Market 6 is the demo market
 const DEMO_TRADE_AMOUNT = parseUsdc(20); // 20 mUSDC
@@ -29,6 +31,7 @@ const STEPS: Step[] = [
 
 export function DemoGuide() {
   const { address } = useAccount();
+  const { writeContractAsync } = useWriteContract();
   const { addToast } = useToast();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -55,22 +58,17 @@ export function DemoGuide() {
         return;
       }
 
-      // Step 1: faucet
+      // Step 1: on-chain faucet (user signs from wallet)
       if (step === 1) {
         if (!address) { addToast("Connect wallet first", "info"); return; }
-        const res = await fetch("/api/demo/faucet", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address }),
+        const hash = await writeContractAsync({
+          ...mockUsdcConfig,
+          functionName: "faucet",
+          args: [],
         });
-        const json = await res.json();
-        if (res.ok) {
-          addToast("1 000 mUSDC received!", "success", json.hash);
-          setTimeout(() => queryClient.invalidateQueries(), 3000);
-          next();
-        } else {
-          addToast(json.error ?? "Faucet failed", "error");
-        }
+        addToast("1 000 mUSDC requested from faucet", "pending", hash);
+        setTimeout(() => queryClient.invalidateQueries(), 3000);
+        next();
         return;
       }
 
