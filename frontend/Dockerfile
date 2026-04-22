@@ -27,7 +27,7 @@ ENV NEXT_PUBLIC_CHAIN_ID=$NEXT_PUBLIC_CHAIN_ID
 ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=$NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 ENV NEXT_PUBLIC_RPC_URL=$NEXT_PUBLIC_RPC_URL
 
-RUN npm run build
+RUN npx next build --webpack
 
 # ── Stage 3: production runner ────────────────────────────────────────────────
 FROM node:22-alpine AS runner
