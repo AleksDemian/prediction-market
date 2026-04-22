@@ -181,7 +181,7 @@ export function TradePanel({ data }: TradePanelProps) {
             onClick={() => setIsYes(true)}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
               isYes
-                ? "bg-yes text-white"
+                ? "bg-yes text-navy"
                 : "bg-navy-800 text-text-secondary hover:bg-navy-700 border border-border"
             }`}
           >
@@ -191,7 +191,7 @@ export function TradePanel({ data }: TradePanelProps) {
             onClick={() => setIsYes(false)}
             className={`flex-1 py-3 rounded-xl text-base font-bold transition-all ${
               !isYes
-                ? "bg-no text-white"
+                ? "bg-no text-navy"
                 : "bg-navy-800 text-text-secondary hover:bg-navy-700 border border-border"
             }`}
           >
