@@ -5,7 +5,6 @@ import {
   metaMaskWallet,
   rainbowWallet,
   walletConnectWallet,
-  injectedWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { fallback, http } from "viem";
 import { sepolia } from "wagmi/chains";
@@ -53,7 +52,7 @@ export const wagmiConfig = getDefaultConfig({
   wallets: [
     {
       groupName: "Popular",
-      wallets: [injectedWallet, metaMaskWallet, rainbowWallet, walletConnectWallet],
+      wallets: [metaMaskWallet, rainbowWallet, walletConnectWallet],
     },
   ],
 });
