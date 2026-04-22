@@ -1,25 +1,26 @@
 services:
   indexer:
-    image: ${INDEXER_IMAGE:-ghcr.io/boostylabs/prediction-market-demo-indexer:latest}
+    image: ghcr.io/boostylabs/prediction-market-demo-indexer:latest
     container_name: prediction-market-demo-indexer
     restart: unless-stopped
-    env_file:
-      - .env
     environment:
       DATABASE_PATH: /data/app.db
+      MARKET_ADDRESS: ${MARKET_ADDRESS}
+      RPC_URL: ${RPC_URL}
+      CONTRACT_DEPLOY_BLOCK: ${CONTRACT_DEPLOY_BLOCK:-10696829}
     volumes:
       - app-data:/data
 
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/boostylabs/prediction-market-demo-frontend:latest}
+    image: ghcr.io/boostylabs/prediction-market-demo-frontend:latest
     container_name: prediction-market-demo-frontend
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:3000"
-    env_file:
-      - .env
     environment:
       DATABASE_PATH: /data/app.db
+      PRIVATE_KEY: ${PRIVATE_KEY}
+      DEMO_ADMIN_PRIVATE_KEY: ${DEMO_ADMIN_PRIVATE_KEY}
     volumes:
       - app-data:/data:ro
     depends_on:
