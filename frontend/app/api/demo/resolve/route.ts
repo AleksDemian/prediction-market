@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid outcome (use 1=YES, 2=NO, 3=INVALID)" }, { status: 400 });
     }
 
-    const privateKey     = process.env.DEMO_ADMIN_PRIVATE_KEY as `0x${string}`;
+    const privateKey     = (process.env.DEMO_ADMIN_PRIVATE_KEY || process.env.PRIVATE_KEY) as `0x${string}`;
     const marketAddress  = process.env.NEXT_PUBLIC_MARKET_ADDRESS as `0x${string}`;
     const rpcUrl         = process.env.NEXT_PUBLIC_RPC_URL;
 
