@@ -11,6 +11,7 @@ RUN npm config set fetch-retries 5 && \
 # ── Stage 2: build ────────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
 WORKDIR /app
+RUN apk add --no-cache libstdc++
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
@@ -27,11 +28,12 @@ ENV NEXT_PUBLIC_CHAIN_ID=$NEXT_PUBLIC_CHAIN_ID
 ENV NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=$NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID
 ENV NEXT_PUBLIC_RPC_URL=$NEXT_PUBLIC_RPC_URL
 
-RUN npx next build --webpack
+RUN npm run build
 
 # ── Stage 3: production runner ────────────────────────────────────────────────
 FROM node:22-alpine AS runner
 WORKDIR /app
+RUN apk add --no-cache libstdc++
 ENV NODE_ENV=production
 
 COPY --from=builder /app/.next/standalone ./
