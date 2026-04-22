@@ -1,0 +1,35 @@
+services:
+  indexer:
+    image: ${INDEXER_IMAGE:-ghcr.io/boostylabs/prediction-market-demo-indexer:latest}
+    container_name: prediction-market-demo-indexer
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /data/app.db
+    volumes:
+      - app-data:/data
+
+  frontend:
+    image: ${FRONTEND_IMAGE:-ghcr.io/boostylabs/prediction-market-demo-frontend:latest}
+    container_name: prediction-market-demo-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_PATH: /data/app.db
+    volumes:
+      - app-data:/data:ro
+    depends_on:
+      - indexer
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  app-data:
