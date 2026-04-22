@@ -42,7 +42,7 @@ const transport = fallback(
 
 export const wagmiConfig = getDefaultConfig({
   appName: "Prediction Market Demo",
-  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID ?? "demo",
+  projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo",
   chains: [sepolia],
   transports: {
     [sepolia.id]: transport,
