@@ -13,7 +13,6 @@ A decentralized demo prediction market project on Sepolia:
 
 Additional documentation:
 
-- `HANDOVER.md` — step-by-step project transfer guide for a new owner (handoff checklist)
 - `backend/README.md` — backend indexer: env, run, tests, troubleshooting
 - `frontend/README.md` — frontend: env, local run, Docker flow
 
@@ -83,8 +82,6 @@ Expected state:
 - `indexer` — `Up`
 - UI is available at `http://localhost:3000`
 - health endpoint: `http://localhost:3000/api/health`
-
-For full handoff acceptance, use the checklist in `HANDOVER.md`.
 
 ## Stop
 
