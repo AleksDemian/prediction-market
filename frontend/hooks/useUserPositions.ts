@@ -13,8 +13,8 @@ export function useUserPosition(marketId: bigint) {
     args: [marketId, address!],
     query: {
       enabled: !!address && marketId > 0n,
-      refetchInterval: 30_000,
-      staleTime: 20_000,
+      refetchInterval: 120_000,
+      staleTime: 60_000,
     },
   });
 

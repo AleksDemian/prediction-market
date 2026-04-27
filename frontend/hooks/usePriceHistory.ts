@@ -25,8 +25,8 @@ export function usePriceHistory(marketId: bigint) {
     enabled: marketId > 0n,
     staleTime: 5 * 60_000,
     refetchOnMount: false,
-    // Baseline polling is low-frequency; write flow triggers a short 3s burst
+    // Baseline polling is low-frequency; write flow triggers a short 2s burst
     // via query invalidation in useTrading.pollAfterTrade().
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   });
 }

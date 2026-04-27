@@ -22,7 +22,7 @@ function UsdcBalance() {
     ...mockUsdcConfig,
     functionName: "balanceOf",
     args: [address!],
-    query: { enabled: !!address, refetchInterval: 10_000 },
+    query: { enabled: !!address, refetchInterval: 60_000 },
   });
   if (!address || balance === undefined) return null;
   return (

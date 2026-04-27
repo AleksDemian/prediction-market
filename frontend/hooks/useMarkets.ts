@@ -48,8 +48,8 @@ export function useMarkets(initialData?: MarketRow[]) {
       return rows.map(parseMarketRow);
     },
     initialData: initialData?.map(parseMarketRow),
-    refetchInterval: 30_000,
-    staleTime: 20_000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 
   return { markets: data ?? [], isLoading, error, refetch };

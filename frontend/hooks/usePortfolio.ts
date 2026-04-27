@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useReadContracts, useAccount } from "wagmi";
 import { useMarkets } from "./useMarkets";
 import { useUserTrades } from "./useUserTrades";
@@ -58,15 +58,16 @@ export function usePortfolio() {
     contracts,
     query: {
       enabled: !!address && markets.length > 0,
-      refetchInterval: 30_000,
-      staleTime: 20_000,
+      refetchInterval: 120_000,
+      staleTime: 60_000,
     },
   });
 
-  const positions: PortfolioPosition[] = [];
+  const positions: PortfolioPosition[] = useMemo(() => {
+    if (!positionsData || markets.length === 0) return [];
 
-  if (positionsData && markets.length > 0) {
     const now = BigInt(Math.floor(Date.now() / 1000));
+    const nextPositions: PortfolioPosition[] = [];
 
     for (let i = 0; i < markets.length; i++) {
       const result = positionsData[i];
@@ -105,7 +106,7 @@ export function usePortfolio() {
         marketStatus = "open";
       }
 
-      positions.push({
+      nextPositions.push({
         marketId: market.id,
         question: market.question,
         category: market.category,
@@ -126,7 +127,9 @@ export function usePortfolio() {
         pnlNo,
       });
     }
-  }
+
+    return nextPositions;
+  }, [markets, positionsData, tradeStats]);
 
   const lastStablePositionsRef = useRef<PortfolioPosition[]>([]);
   const hasTransientError = !!marketsError || !!tradesError || !!positionsError;

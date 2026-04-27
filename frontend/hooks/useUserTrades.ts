@@ -24,8 +24,8 @@ export function useUserTrades() {
       return res.json();
     },
     enabled: !!address,
-    staleTime: 30_000,
+    staleTime: 60_000,
     refetchOnMount: true,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   });
 }

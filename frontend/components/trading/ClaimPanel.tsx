@@ -21,7 +21,7 @@ export function ClaimPanel({ market }: ClaimPanelProps) {
     ...predictionMarketConfig,
     functionName: "getUserPosition",
     args: [market.id, address!],
-    query: { enabled: !!address && market.resolved, refetchInterval: 10_000 },
+    query: { enabled: !!address && market.resolved, refetchInterval: 60_000 },
   }) as { data: { yesShares: bigint; noShares: bigint; claimed: boolean } | undefined };
 
   if (!market.resolved) return null;

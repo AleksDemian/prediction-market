@@ -24,4 +24,6 @@ RUN mkdir -p /data && \
 
 USER nodejs
 
+EXPOSE 8787
+
 CMD ["node_modules/.bin/tsx", "src/indexer.ts"]

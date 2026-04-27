@@ -15,7 +15,7 @@ export function SharesDisplay({ market }: SharesDisplayProps) {
     ...predictionMarketConfig,
     functionName: "getUserPosition",
     args: [market.id, address!],
-    query: { enabled: !!address, refetchInterval: 15_000 },
+    query: { enabled: !!address, refetchInterval: 60_000 },
   }) as { data: { yesShares: bigint; noShares: bigint; claimed: boolean } | undefined };
 
   if (!address || !pos || (pos.yesShares === 0n && pos.noShares === 0n)) return null;

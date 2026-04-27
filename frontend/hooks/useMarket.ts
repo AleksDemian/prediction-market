@@ -18,8 +18,8 @@ export function useMarket(marketId: bigint, initialData?: MarketRow) {
     enabled: marketId > 0n,
     initialData: initialData ? parseMarketRow(initialData) : undefined,
     initialDataUpdatedAt: initialData ? Date.now() : undefined,
-    refetchInterval: 30_000,
-    staleTime: 20_000,
+    refetchInterval: 120_000,
+    staleTime: 60_000,
   });
 
   return {

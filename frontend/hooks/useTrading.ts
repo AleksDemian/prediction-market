@@ -4,7 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useWriteContract, useWaitForTransactionReceipt, useAccount } from "wagmi";
 import { predictionMarketConfig, mockUsdcConfig } from "@/lib/contracts";
 import { MARKET_ADDRESS } from "@/constants";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 export function isUserRejection(e: unknown): boolean {
   const msg = (e instanceof Error ? e.message : String(e)).toLowerCase();
@@ -42,13 +42,22 @@ export function useTrading(marketId: bigint) {
   const [error, setError] = useState<string | undefined>();
   const pollGenerationRef = useRef(0);
 
-  const { isLoading: isConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash: pendingHash,
     query: { enabled: !!pendingHash },
   });
 
-  // Poll the API every 3 s for up to 30 s so the UI reflects the indexed event
-  function pollAfterTrade() {
+  const requestIndexerRefresh = useCallback(async () => {
+    try {
+      await fetch("/api/indexer/refresh", { method: "POST" });
+    } catch {
+      // The scheduled poll still catches up if the internal refresh endpoint is unavailable.
+    }
+  }, []);
+
+  // Poll local API after a mined transaction so the UI reflects the indexed event
+  // without keeping the indexer on a high-frequency RPC loop all day.
+  const pollAfterTrade = useCallback(() => {
     pollGenerationRef.current += 1;
     const generation = pollGenerationRef.current;
     const keys = [
@@ -58,15 +67,26 @@ export function useTrading(marketId: bigint) {
       ["markets"],
       ...(address ? [["userTrades", address]] : []),
     ];
-    const attempts = 10;
+    const attempts = 15;
     (async () => {
+      await requestIndexerRefresh();
       for (let i = 0; i < attempts; i++) {
-        await sleep(3_000);
+        await sleep(2_000);
         if (generation !== pollGenerationRef.current) return;
+        if (i === 0) {
+          queryClient.invalidateQueries({ type: "active" });
+        }
         keys.forEach((k) => queryClient.invalidateQueries({ queryKey: k }));
       }
     })();
-  }
+  }, [address, marketId, queryClient, requestIndexerRefresh]);
+
+  useEffect(() => {
+    if (isConfirmed && pendingHash) {
+      pollAfterTrade();
+      setPendingHash(undefined);
+    }
+  }, [isConfirmed, pendingHash, pollAfterTrade]);
 
   useEffect(() => {
     return () => {
@@ -88,7 +108,6 @@ export function useTrading(marketId: bigint) {
         args: [marketId, isYes, collateralIn, minSharesOut],
       });
       setPendingHash(hash);
-      pollAfterTrade();
       return hash;
     } catch (e: unknown) {
       if (!isUserRejection(e)) {
@@ -115,7 +134,6 @@ export function useTrading(marketId: bigint) {
         args: [marketId, isYes, sharesIn, minCollateralOut],
       });
       setPendingHash(hash);
-      pollAfterTrade();
       return hash;
     } catch (e: unknown) {
       if (!isUserRejection(e)) {
@@ -138,7 +156,6 @@ export function useTrading(marketId: bigint) {
         args: [marketId],
       });
       setPendingHash(hash);
-      pollAfterTrade();
       return hash;
     } catch (e: unknown) {
       if (!isUserRejection(e)) {

@@ -1,4 +1,5 @@
 import "./load-env";
+import { createServer } from "node:http";
 import { openDb, getLastIndexedBlock, setLastIndexedBlock } from "./db";
 import { createClient, fetchBlockTimestamps } from "./rpc";
 import { MARKET_ADDRESS, PREDICTION_MARKET_ABI } from "./abi";
@@ -7,6 +8,7 @@ import { insertTrade } from "./handlers/trades";
 import { insertResolution } from "./handlers/resolutions";
 import { insertClaim } from "./handlers/claims";
 import { updatePoolSnapshots } from "./snapshot";
+import { getIndexerConfig } from "./indexer-config";
 
 // Default resolves to <repo>/data/app.db (shared with the frontend route handlers).
 const DB_PATH = process.env.DATABASE_PATH ?? "../data/app.db";
@@ -17,8 +19,9 @@ const DEPLOY_BLOCK = BigInt(
 // grows too large — either path produces obscure viem errors. 2k is a safe
 // default across Infura/Alchemy/public RPCs; tune via INDEXER_BATCH_SIZE.
 const BATCH_SIZE = BigInt(process.env.INDEXER_BATCH_SIZE ?? "2000");
-const POLL_INTERVAL_MS = 6_000;
-const REORG_BUFFER = 64n;
+const { pollIntervalMs: POLL_INTERVAL_MS, reorgBufferBlocks: REORG_BUFFER, refreshPort: REFRESH_PORT } =
+  getIndexerConfig(process.env);
+const MIN_REFRESH_INTERVAL_MS = 10_000;
 
 // RPC-error messages that indicate the batch window is too wide.
 const RANGE_ERROR_RE =
@@ -254,6 +257,69 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function createRefreshWakeup() {
+  let requested = false;
+  let lastRequestedAt = 0;
+  let wake: (() => void) | null = null;
+
+  return {
+    request() {
+      const now = Date.now();
+      if (now - lastRequestedAt < MIN_REFRESH_INTERVAL_MS) return;
+      lastRequestedAt = now;
+      requested = true;
+      wake?.();
+    },
+    async wait(ms: number) {
+      if (requested) {
+        requested = false;
+        return;
+      }
+
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          wake = null;
+          resolve();
+        }, ms);
+
+        wake = () => {
+          clearTimeout(timeout);
+          wake = null;
+          requested = false;
+          resolve();
+        };
+      });
+    },
+  };
+}
+
+function startRefreshServer(port: number, requestRefresh: () => void) {
+  const server = createServer((req, res) => {
+    if (req.method === "GET" && req.url === "/health") {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: "ok" }));
+      return;
+    }
+
+    if (req.method === "POST" && req.url === "/refresh") {
+      requestRefresh();
+      res.writeHead(202, { "content-type": "application/json" });
+      res.end(JSON.stringify({ status: "scheduled" }));
+      return;
+    }
+
+    res.writeHead(404, { "content-type": "application/json" });
+    res.end(JSON.stringify({ error: "not found" }));
+  });
+
+  server.on("error", (err) => {
+    console.error("[indexer] refresh server error:", err);
+  });
+  server.listen(port, "0.0.0.0", () => {
+    console.log(`[indexer] Refresh endpoint listening on :${port}`);
+  });
+}
+
 // Tries the batch once; on range-size errors it bisects the block window and
 // retries each half. Any other error propagates to the caller's retry loop.
 async function processBatchAdaptive(
@@ -283,10 +349,14 @@ async function main(): Promise<void> {
     throw new Error("MARKET_ADDRESS env var is required");
   }
 
-  console.log(`[indexer] Starting — market: ${MARKET_ADDRESS}, db: ${DB_PATH}`);
+  console.log(
+    `[indexer] Starting — market: ${MARKET_ADDRESS}, db: ${DB_PATH}, poll: ${POLL_INTERVAL_MS}ms, reorg: ${REORG_BUFFER} blocks`
+  );
 
   const db = openDb(DB_PATH);
   const client = createClient();
+  const refreshWakeup = createRefreshWakeup();
+  startRefreshServer(REFRESH_PORT, refreshWakeup.request);
 
   // ── Backfill ───────────────────────────────────────────────────────────────
   let fromBlock = getLastIndexedBlock(db);
@@ -323,7 +393,7 @@ async function main(): Promise<void> {
 
   // ── Steady-state poll ──────────────────────────────────────────────────────
   while (true) {
-    await sleep(POLL_INTERVAL_MS);
+    await refreshWakeup.wait(POLL_INTERVAL_MS);
 
     try {
       const latest = await client.getBlockNumber();

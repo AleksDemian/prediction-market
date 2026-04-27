@@ -26,7 +26,7 @@ export function PortfolioSummary({ totalValue, positionCount, claimableCount }: 
     ...mockUsdcConfig,
     functionName: "balanceOf",
     args: [address!],
-    query: { enabled: !!address, refetchInterval: 15_000 },
+    query: { enabled: !!address, refetchInterval: 60_000 },
   });
 
   const balanceStr = balance != null ? `${formatUsdc(balance as bigint)} mUSDC` : "—";

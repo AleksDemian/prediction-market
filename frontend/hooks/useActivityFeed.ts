@@ -71,6 +71,6 @@ export function useActivityFeed({
     refetchOnMount: false,
     // Keep steady-state polling light; useTrading triggers a temporary fast
     // refresh cycle right after writes so activity and chart stay in sync.
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   });
 }
