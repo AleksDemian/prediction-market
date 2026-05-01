@@ -136,7 +136,6 @@ contract PredictionMarket is ReentrancyGuard {
         uint64 resolutionTime,
         uint256 initialLiquidity
     ) external returns (uint256 marketId) {
-        require(msg.sender == admin,                         "Not admin");
         require(bytes(question).length > 0,                  "Empty question");
         require(closingTime    > block.timestamp,            "Bad closing time");
         require(resolutionTime >= closingTime,               "Bad resolution time");
@@ -341,7 +340,6 @@ contract PredictionMarket is ReentrancyGuard {
     /// @notice Resolve a market after its `resolutionTime`.
     function resolveMarket(uint256 marketId, Outcome outcome) external {
         MarketInfo storage m = markets[marketId];
-        require(msg.sender == admin,                         "Not admin");
         require(m.id != 0,                                   "Market not found");
         require(!m.resolved,                                 "Already resolved");
         require(block.timestamp >= m.resolutionTime,         "Too early");
@@ -353,10 +351,8 @@ contract PredictionMarket is ReentrancyGuard {
     }
 
     /// @notice Force-resolve a market, skipping the time check.
-    ///         Used by the demo API to resolve markets during guided demo flow.
     function forceResolveMarket(uint256 marketId, Outcome outcome) external {
         MarketInfo storage m = markets[marketId];
-        require(msg.sender == admin,                         "Not admin");
         require(m.id != 0,                                   "Market not found");
         require(!m.resolved,                                 "Already resolved");
         require(outcome != Outcome.UNRESOLVED,               "Invalid outcome");

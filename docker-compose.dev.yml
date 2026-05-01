@@ -23,8 +23,6 @@ services:
     environment:
       DATABASE_PATH: /data/app.db
       INDEXER_REFRESH_URL: http://indexer:${INDEXER_REFRESH_PORT:-8787}/refresh
-      PRIVATE_KEY: ${PRIVATE_KEY}
-      DEMO_ADMIN_PRIVATE_KEY: ${DEMO_ADMIN_PRIVATE_KEY}
     volumes:
       - app-data:/data:ro
     depends_on:

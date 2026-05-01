@@ -3,6 +3,7 @@
 .env.local
 .env.*.local
 frontend/.env.local
+env.server
 contracts/.env
 
 # ── OS ───────────────────────────────────────────────────────────────────────

@@ -6,8 +6,14 @@ import { RainbowKitProvider, darkTheme } from "@rainbow-me/rainbowkit";
 import { wagmiConfig } from "@/lib/wagmi";
 import { ToastProvider } from "@/components/ui/Toast";
 import { Header } from "@/components/layout/Header";
+import { useMarketSyncListener } from "@/hooks/useMarketSync";
 
 import "@rainbow-me/rainbowkit/styles.css";
+
+function MarketSyncListener() {
+  useMarketSyncListener();
+  return null;
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +48,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           })}
         >
           <ToastProvider>
+            <MarketSyncListener />
             <Header />
             <main className="flex-1">{children}</main>
           </ToastProvider>

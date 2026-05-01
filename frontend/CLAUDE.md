@@ -30,12 +30,11 @@ No test suite is configured. There is no `npm test` command.
 
 ```
 app/
-  layout.tsx          # Root layout — mounts Providers, Header, DemoGuide
+  layout.tsx          # Root layout — mounts Providers, Header
   providers.tsx       # Provider tree: Wagmi → QueryClient → RainbowKit → Toast
   page.tsx            # Market listing page
   globals.css         # Tailwind v4 @theme tokens (brand colors, dark theme)
   api/
-    demo/resolve/     # POST — admin force-resolve markets
     health/           # GET  — health check
   market/[id]/        # Dynamic market detail page
 
@@ -44,7 +43,6 @@ components/           # React components by domain
   layout/             # Header, navigation
   markets/            # Market cards, list, detail
   trading/            # Buy/sell share panels
-  demo/               # DemoGuide overlay
 
 hooks/                # Custom wagmi-based hooks
   useTrading.ts       # Buy/sell/claim flow with allowance checks
@@ -63,9 +61,6 @@ types/                # Market, Pool, Position interfaces; Outcome enum
 ```
 
 ### Environment Variables
-
-Server-only (no prefix):
-- `DEMO_ADMIN_PRIVATE_KEY` — private key used by `api/demo/resolve` to sign admin resolution transactions
 
 Client-exposed (`NEXT_PUBLIC_` prefix required):
 - `NEXT_PUBLIC_MARKET_ADDRESS` — deployed PredictionMarket contract

@@ -7,7 +7,6 @@ Prediction market UI. It interacts with the on-chain contract via `wagmi/viem` a
 - market list and cards with live prices
 - market detail page with chart, activity, and trading panel
 - user portfolio
-- demo-resolve API (`/api/demo/resolve`) for admin force-resolve (demo-only scenario)
 
 ## Environment Variables
 
@@ -23,8 +22,6 @@ Client variables (`NEXT_PUBLIC_*`):
 
 Server variables:
 
-- `DEMO_ADMIN_PRIVATE_KEY` — optional override for `/api/demo/resolve`
-- `PRIVATE_KEY` — fallback key for `/api/demo/resolve` when `DEMO_ADMIN_PRIVATE_KEY` is not set
 - `DATABASE_PATH` — SQLite path (default for local dev: `../data/app.db`; in Docker: `/data/app.db`)
 
 Local template file: `frontend/.env.local.example`.

@@ -111,6 +111,7 @@ export function Header() {
   const navLinks = [
     { href: "/",           label: "Markets" },
     { href: "/portfolio",  label: "Portfolio", requiresWallet: true },
+    { href: "/admin",      label: "Admin Panel" },
   ];
 
   return (

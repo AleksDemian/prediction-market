@@ -69,15 +69,19 @@ contract PredictionMarketTest is Test {
         assertEq(pool.totalCollateral, SEED);
     }
 
-    function test_CreateMarket_OnlyAdmin() public {
-        vm.expectRevert("Not admin");
+    function test_CreateMarket_AnyAccount() public {
         vm.prank(alice);
-        market.createMarket(
+        usdc.approve(address(market), type(uint256).max);
+        usdc.mint(alice, SEED);
+
+        vm.prank(alice);
+        uint256 id = market.createMarket(
             "Q", "C",
             uint64(block.timestamp + 1 days),
             uint64(block.timestamp + 2 days),
             SEED
         );
+        assertEq(id, 1);
     }
 
     function test_InitialProbability50pct() public {
@@ -221,10 +225,31 @@ contract PredictionMarketTest is Test {
         assertTrue(info.resolved);
     }
 
+    function test_ResolveMarket_AnyAccount() public {
+        uint256 id = _createMarket();
+        vm.warp(block.timestamp + 2 days);
+
+        vm.prank(alice);
+        market.resolveMarket(id, PredictionMarket.Outcome.YES);
+
+        (PredictionMarket.MarketInfo memory info,) = market.getMarket(id);
+        assertTrue(info.resolved);
+    }
+
+    function test_ForceResolveMarket_AnyAccount() public {
+        uint256 id = _createMarket();
+
+        vm.prank(alice);
+        market.forceResolveMarket(id, PredictionMarket.Outcome.NO);
+
+        (PredictionMarket.MarketInfo memory info,) = market.getMarket(id);
+        assertTrue(info.resolved);
+    }
+
     function test_ResolveMarket_TooEarly() public {
         uint256 id = _createMarket();
         vm.expectRevert("Too early");
-        vm.prank(admin);
+        vm.prank(alice);
         market.resolveMarket(id, PredictionMarket.Outcome.YES);
     }
 
